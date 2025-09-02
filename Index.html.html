@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <title>Eisenhower Matrix - VisionOS Inspired</title>
+    <style>
+        /* VisionOS-inspired CSS: Glassmorphism with blur, rounded corners, depth shadows, clean sans-serif font */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #f0f0f0, #e0e0e0);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            color: #333;
+            box-sizing: border-box;
+        }
+
+        .matrix-container {
+            display: grid;
+            grid-template-columns: auto 1fr 1fr;
+            grid-template-rows: auto 1fr 1fr 40px auto auto; /* Added row for info-links */
+            gap: 20px;
+            max-width: 900px;
+            width: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+            margin: 0 auto; /* Center the container */
+        }
+
+        .label {
+            font-weight: bold;
+            font-size: 1.2em;
+            color: #555;
+        }
+
+        .important-label {
+            grid-column: 2;
+            grid-row: 1;
+            text-align: center;
+        }
+
+        .not-important-label {
+            grid-column: 3;
+            grid-row: 1;
+            text-align: center;
+        }
+
+        .urgent-label {
+            grid-column: 1;
+            grid-row: 2;
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .not-urgent-label {
+            grid-column: 1;
+            grid-row: 3;
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .quadrant {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s;
+            box-sizing: border-box;
+            max-width: 100%;
+        }
+
+        .quadrant:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .quadrant.bounce {
+            animation: bubbleBounce 0.6s cubic-bezier(0.68, -0.6, 0.32, 1.6);
+        }
+
+        @keyframes bubbleBounce {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.08, 1.08); }
+            100% { transform: scale(1); }
+        }
+
+        .quadrant h2 {
+            margin: 0 0 10px;
+            font-size: 1.5em;
+            color: #222;
+        }
+
+        .quadrant .mobile-label {
+            display: none; /* Hidden by default on desktop */
+            font-size: 1em;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        .task-list {
+            list-style: none;
+            padding: 0;
+            flex-grow: 1;
+            overflow-y: auto;
+            max-height: 200px;
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling on touch devices */
+        }
+
+        .task-item {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            cursor: grab;
+            opacity: 1;
+            transform: translateY(0);
+            animation: slideUp 0.3s ease-out;
+            box-sizing: border-box;
+            max-width: 100%;
+            touch-action: manipulation; /* Improve touch interaction */
+        }
+
+        .task-item span {
+            flex: 1;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            max-width: calc(100% - 30px); /* Account for button width */
+        }
+
+        /* Slide-up animation for new tasks */
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Swipe-away animation for deleted tasks */
+        .task-item.deleting {
+            animation: swipeAway 0.2s ease-in forwards;
+        }
+
+        @keyframes swipeAway {
+            to {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+        }
+
+        /* Slide-in animation for tasks moved to Completed */
+        .task-item.completed {
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .task-item button {
+            background: none;
+            border: none;
+            color: #ff3b30;
+            cursor: pointer;
+            font-size: 1em;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .task-item:hover button,
+        .task-item:active button {
+            opacity: 1; /* Show button on hover or tap */
+        }
+
+        .add-task {
+            display: flex;
+            margin-top: 10px;
+        }
+
+        .add-task input {
+            flex-grow: 1;
+            padding: 10px;
+            border-radius: 10px 0 0 10px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            background: rgba(255, 255, 255, 0.9);
+            box-sizing: border-box;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            max-width: calc(100% - 60px); /* Account for button width */
+        }
+
+        .add-task button {
+            padding: 10px 15px;
+            border-radius: 0 10px 10px 0;
+            border: none;
+            background: #007aff;
+            color: white;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .add-task button:hover {
+            background: #005bb5;
+        }
+
+        /* Quadrant positions */
+        .do { grid-column: 2; grid-row: 2; border: 2px solid #ff3b30; } /* Red for urgent/important */
+        .schedule { grid-column: 3; grid-row: 2; border: 2px solid #34c759; } /* Green for schedule */
+        .delegate { grid-column: 2; grid-row: 3; border: 2px solid #ffcc00; } /* Yellow for delegate */
+        .delete { grid-column: 3; grid-row: 3; border: 2px solid #8e8e93; } /* Gray for delete */
+        .completed { 
+            grid-column: 2 / 4; /* Align left with Delegate, right with Delete */
+            grid-row: 5; /* Moved to row 5 for extra spacing */
+            border: 2px solid #5856d6; /* Purple for completed */
+            max-width: 100%;
+            width: calc(100% + 20px); /* Account for grid gap */
+            margin-right: -20px; /* Align with Delete's right edge */
+        }
+
+        /* Info links styling */
+        .info-links {
+            grid-column: 2 / 4; /* Match Completed quadrant's columns */
+            grid-row: 6; /* Place in new row below Completed */
+            display: flex;
+            flex-direction: row; /* Align links side by side */
+            gap: 20px; /* Space between links */
+            justify-content: center; /* Center links horizontally */
+            align-items: center; /* Align links vertically */
+            width: calc(100% + 20px); /* Match Completed quadrant's width */
+            margin-right: -20px; /* Align with Completed quadrant's right edge */
+            margin-left: 0; /* Align with Completed quadrant's left edge */
+        }
+
+        .info-links a {
+            color: #007aff;
+            text-decoration: none;
+            font-size: 1em;
+            cursor: pointer;
+        }
+
+        .info-links a:hover {
+            text-decoration: underline;
+        }
+
+        /* Modal styling */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        .modal-content h3 {
+            margin-top: 0;
+            color: #222;
+        }
+
+        .modal-content p {
+            line-height: 1.5;
+            margin: 10px 0;
+        }
+
+        .modal-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+
+        .modal-content th, .modal-content td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .modal-content th {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .close-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 1.2em;
+            color: #ff3b30;
+            cursor: pointer;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 600px) {
+            .matrix-container {
+                grid-template-columns: 1fr; /* Stack all elements vertically */
+                grid-template-rows: auto auto auto auto auto auto; /* Adjusted for stacked quadrants and info-links */
+                gap: 15px; /* Slightly smaller gap for mobile */
+                padding: 10px;
+            }
+
+            .important-label,
+            .not-important-label,
+            .urgent-label,
+            .not-urgent-label {
+                display: none; /* Hide original labels on mobile */
+            }
+
+            .do {
+                grid-column: 1;
+                grid-row: 1;
+            }
+
+            .do .mobile-label {
+                display: block; /* Show mobile-specific label */
+            }
+
+            .schedule {
+                grid-column: 1;
+                grid-row: 2;
+            }
+
+            .schedule .mobile-label {
+                display: block;
+            }
+
+            .delegate {
+                grid-column: 1;
+                grid-row: 3;
+            }
+
+            .delegate .mobile-label {
+                display: block;
+            }
+
+            .delete {
+                grid-column: 1;
+                grid-row: 4;
+            }
+
+            .delete .mobile-label {
+                display: block;
+            }
+
+            .completed {
+                grid-column: 1;
+                grid-row: 5; /* Maintain extra spacing */
+                width: 100%; /* Full width on mobile */
+                margin-right: 0; /* Remove offset for mobile */
+            }
+
+            .info-links {
+                grid-column: 1; /* Full width on mobile */
+                grid-row: 6; /* Below Completed quadrant */
+                width: 100%; /* Full width on mobile */
+                margin-right: 0; /* Remove offset for mobile */
+                margin-left: 0; /* Center on mobile */
+                flex-direction: column; /* Stack links vertically on mobile */
+                gap: 10px; /* Smaller gap for mobile */
+            }
+
+            .quadrant h2 {
+                font-size: 1.2em; /* Smaller headers on mobile */
+            }
+
+            .task-list {
+                max-height: 150px; /* Slightly smaller scroll area */
+            }
+
+            .task-item {
+                font-size: 0.9em; /* Smaller text for mobile */
+                padding: 8px;
+            }
+
+            .task-item button {
+                font-size: 0.9em;
+                opacity: 0.7; /* Slightly visible by default for touch */
+            }
+
+            .add-task input {
+                font-size: 0.9em;
+                padding: 8px;
+            }
+
+            .add-task button {
+                padding: 8px 12px;
+                font-size: 0.9em;
+            }
+
+            .modal-content {
+                width: 95%;
+                padding: 15px;
+                max-height: 85vh;
+            }
+
+            .modal-content h3 {
+                font-size: 1.2em;
+            }
+
+            .modal-content p {
+                font-size: 0.9em;
+            }
+
+            .modal-content table {
+                font-size: 0.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="matrix-container">
+        <div class="label important-label">IMPORTANT</div>
+        <div class="label not-important-label">NOT IMPORTANT</div>
+        <div class="label urgent-label">URGENT</div>
+        <div class="label not-urgent-label">NOT URGENT</div>
+
+        <div class="quadrant do">
+            <div class="mobile-label">Important/Urgent</div>
+            <h2>Do</h2>
+            <ul class="task-list" id="do-list"></ul>
+            <div class="add-task">
+                <input type="text" id="do-input" placeholder="Add task...">
+                <button onclick="addTask('do')">Add</button>
+            </div>
+        </div>
+
+        <div class="quadrant schedule">
+            <div class="mobile-label">Not Important/Urgent</div>
+            <h2>Schedule</h2>
+            <ul class="task-list" id="schedule-list"></ul>
+            <div class="add-task">
+                <input type="text" id="schedule-input" placeholder="Add task...">
+                <button onclick="addTask('schedule')">Add</button>
+            </div>
+        </div>
+
+        <div class="quadrant delegate">
+            <div class="mobile-label">Important/Not Urgent</div>
+            <h2>Delegate</h2>
+            <ul class="task-list" id="delegate-list"></ul>
+            <div class="add-task">
+                <input type="text" id="delegate-input" placeholder="Add task...">
+                <button onclick="addTask('delegate')">Add</button>
+            </div>
+        </div>
+
+        <div class="quadrant delete">
+            <div class="mobile-label">Not Important/Not Urgent</div>
+            <h2>Delete</h2>
+            <ul class="task-list" id="delete-list"></ul>
+            <div class="add-task">
+                <input type="text" id="delete-input" placeholder="Add task...">
+                <button onclick="addTask('delete')">Add</button>
+            </div>
+        </div>
+
+        <div class="quadrant completed">
+            <h2>Completed</h2>
+            <ul class="task-list" id="completed-list"></ul>
+        </div>
+
+        <div class="info-links">
+            <a href="#" onclick="openEisenhowerModal()">What is the Eisenhower Matrix</a>
+            <p>•</p>
+            <a href="#" onclick="openInstructionsModal()">Instructions</a>
+        </div>
+    </div>
+
+    <!-- Modal for Eisenhower Matrix info -->
+    <div class="modal" id="eisenhowerModal">
+        <div class="modal-content">
+            <button class="close-button" onclick="closeModal('eisenhowerModal')">✕</button>
+            <h3>The Eisenhower Matrix</h3>
+            <p>The Eisenhower Matrix, also known as the Urgent-Important Matrix, is a time management tool that helps you prioritize tasks based on their urgency and importance. It’s named after Dwight D. Eisenhower, the 34th U.S. President, who famously said:</p>
+            <p><em>“What is important is seldom urgent, and what is urgent is seldom important.”</em></p>
+            <h4>🔲 The Matrix Layout</h4>
+            <p>The matrix has four quadrants, dividing tasks by:</p>
+            <ul>
+                <li>Urgent vs. Not Urgent</li>
+                <li>Important vs. Not Important</li>
+            </ul>
+            <table>
+                <tr>
+                    <th></th>
+                    <th>Urgent</th>
+                    <th>Not Urgent</th>
+                </tr>
+                <tr>
+                    <td>Important</td>
+                    <td>Quadrant I: Do Now</td>
+                    <td>Quadrant II: Plan</td>
+                </tr>
+                <tr>
+                    <td>Not Important</td>
+                    <td>Quadrant III: Delegate</td>
+                    <td>Quadrant IV: Eliminate</td>
+                </tr>
+            </table>
+            <h4>🟩 Quadrant I: Do Now</h4>
+            <p><strong>Urgent + Important</strong></p>
+            <p>Tasks that need immediate attention.</p>
+            <p>Usually crises, deadlines, or problems.</p>
+            <p><strong>Examples:</strong></p>
+            <ul>
+                <li>Handling a client emergency</li>
+                <li>Submitting a report due today</li>
+            </ul>
+            <p><strong>➡️ Action:</strong> Do it immediately.</p>
+            <h4>🟨 Quadrant II: Plan</h4>
+            <p><strong>Not Urgent + Important</strong></p>
+            <p>Tasks that help you grow or prevent future problems.</p>
+            <p>Often neglected, but vital for long-term success.</p>
+            <p><strong>Examples:</strong></p>
+            <ul>
+                <li>Strategic planning</li>
+                <li>Exercise, learning, building relationships</li>
+            </ul>
+            <p><strong>➡️ Action:</strong> Schedule time to do it.</p>
+            <h4>🟥 Quadrant III: Delegate</h4>
+            <p><strong>Urgent + Not Important</strong></p>
+            <p>Tasks that demand attention now but don’t require your skills.</p>
+            <p>Often interruptions or other people’s priorities.</p>
+            <p><strong>Examples:</strong></p>
+            <ul>
+                <li>Most emails or calls</li>
+                <li>Meeting invitations not crucial to you</li>
+            </ul>
+            <p><strong>➡️ Action:</strong> Delegate if possible.</p>
+            <h4>⬛ Quadrant IV: Eliminate</h4>
+            <p><strong>Not Urgent + Not Important</strong></p>
+            <p>Time-wasting activities with little value.</p>
+            <p><strong>Examples:</strong></p>
+            <ul>
+                <li>Mindless scrolling on social media</li>
+                <li>Watching TV excessively</li>
+            </ul>
+            <p><strong>➡️ Action:</strong> Eliminate or minimize.</p>
+            <h4>✅ Why Use the Eisenhower Matrix?</h4>
+            <ul>
+                <li>Helps you focus on what truly matters</li>
+                <li>Reduces stress from constant urgency</li>
+                <li>Increases productivity and strategic thinking</li>
+            </ul>
+            <p>Would you like a printable version or a template for using it daily or weekly?</p>
+        </div>
+    </div>
+
+    <!-- Modal for Instructions -->
+    <div class="modal" id="instructionsModal">
+        <div class="modal-content">
+            <button class="close-button" onclick="closeModal('instructionsModal')">✕</button>
+            <h3>Instructions</h3>
+            <p>Add task to the Area they fit under. Click the X to move to the Completed area. If you want to remove a task completely hit the X on it once its moved to the Completed area.
+                <p>This page relies on Cache to store task. If you clear your cache it will clear the page.</p>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // JavaScript for adding, deleting, editing tasks, drag-and-drop, local storage, and modals
+        const quadrants = ['do', 'schedule', 'delegate', 'delete', 'completed'];
+
+        function loadTasks() {
+            quadrants.forEach(q => {
+                const tasks = JSON.parse(localStorage.getItem(q + 'Tasks')) || [];
+                const list = document.getElementById(q + '-list');
+                list.innerHTML = '';
+                tasks.forEach(task => addTaskToList(q, task));
+            });
+        }
+
+        function saveTasks() {
+            quadrants.forEach(q => {
+                const list = document.getElementById(q + '-list');
+                const tasks = Array.from(list.children).map(li => li.querySelector('span').textContent);
+                localStorage.setItem(q + 'Tasks', JSON.stringify(tasks));
+            });
+        }
+
+        function addTask(quadrant) {
+            const input = document.getElementById(quadrant + '-input');
+            if (!input) return; // No input for completed quadrant
+            const text = input.value.trim();
+            if (text) {
+                addTaskToList(quadrant, text);
+                input.value = '';
+                saveTasks();
+                // Trigger bubble bounce animation on quadrant
+                const quadrantElem = document.querySelector(`.${quadrant}`);
+                quadrantElem.classList.add('bounce');
+                quadrantElem.addEventListener('animationend', () => {
+                    quadrantElem.classList.remove('bounce');
+                }, { once: true });
+            }
+        }
+
+        function addTaskToList(quadrant, text) {
+            const list = document.getElementById(quadrant + '-list');
+            const li = document.createElement('li');
+            li.className = `task-item ${quadrant === 'completed' ? 'completed' : ''}`;
+            li.draggable = true;
+            li.innerHTML = `
+                <span contenteditable="true">${text}</span>
+                <button onclick="${quadrant === 'completed' ? 'permanentlyDeleteTask(this)' : 'deleteTask(this)'}" 
+                        title="${quadrant === 'completed' ? 'Delete permanently' : 'Mark as completed'}">✕</button>
+            `;
+            list.appendChild(li);
+
+            // Edit handling
+            li.querySelector('span').addEventListener('blur', saveTasks);
+
+            // Drag and drop
+            li.addEventListener('dragstart', e => {
+                e.dataTransfer.setData('text/plain', JSON.stringify({
+                    text: li.querySelector('span').textContent,
+                    from: quadrant
+                }));
+            });
+
+            // Touch support for drag-and-drop
+            li.addEventListener('touchstart', e => {
+                e.target.classList.add('touch-active');
+                e.target.setAttribute('data-touch-text', li.querySelector('span').textContent);
+                e.target.setAttribute('data-touch-from', quadrant);
+            });
+
+            li.addEventListener('touchend', e => {
+                e.target.classList.remove('touch-active');
+            });
+        }
+
+        function deleteTask(button) {
+            const li = button.parentElement;
+            const quadrant = li.closest('.quadrant').classList[1];
+            const text = li.querySelector('span').textContent;
+            li.classList.add('deleting');
+            li.addEventListener('animationend', () => {
+                li.remove();
+                addTaskToList('completed', text);
+                saveTasks();
+                // Trigger bubble bounce animation on completed quadrant
+                const completedQuadrant = document.querySelector('.completed');
+                completedQuadrant.classList.add('bounce');
+                completedQuadrant.addEventListener('animationend', () => {
+                    completedQuadrant.classList.remove('bounce');
+                }, { once: true });
+            }, { once: true });
+        }
+
+        function permanentlyDeleteTask(button) {
+            const li = button.parentElement;
+            li.classList.add('deleting');
+            setTimeout(() => {
+                li.remove();
+                saveTasks();
+                // Trigger bubble bounce animation on completed quadrant
+                const completedQuadrant = document.querySelector('.completed');
+                completedQuadrant.classList.add('bounce');
+                setTimeout(() => {
+                    completedQuadrant.classList.remove('bounce');
+                }, 600); // 0.6s for bounce animation
+            }, 200); // 0.2s for swipeAway animation
+        }
+
+        // Modal handling
+        function openEisenhowerModal() {
+            document.getElementById('eisenhowerModal').style.display = 'flex';
+        }
+
+        function openInstructionsModal() {
+            document.getElementById('instructionsModal').style.display = 'flex';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // Close modals when clicking outside
+        document.getElementById('eisenhowerModal').addEventListener('click', e => {
+            if (e.target === document.getElementById('eisenhowerModal')) {
+                closeModal('eisenhowerModal');
+            }
+        });
+
+        document.getElementById('instructionsModal').addEventListener('click', e => {
+            if (e.target === document.getElementById('instructionsModal')) {
+                closeModal('instructionsModal');
+            }
+        });
+
+        // Drop handling for quadrants
+        quadrants.forEach(q => {
+            const quadrantElem = document.querySelector(`.${q}`);
+            quadrantElem.addEventListener('dragover', e => e.preventDefault());
+            quadrantElem.addEventListener('drop', e => {
+                e.preventDefault();
+                const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+                const fromList = document.getElementById(data.from + '-list');
+                const taskItem = Array.from(fromList.children).find(li => li.querySelector('span').textContent === data.text);
+                if (taskItem) {
+                    taskItem.remove();
+                    addTaskToList(q, data.text);
+                    saveTasks();
+                    // Trigger bubble bounce animation on drop
+                    const quadrantElem = document.querySelector(`.${q}`);
+                    quadrantElem.classList.add('bounce');
+                    quadrantElem.addEventListener('animationend', () => {
+                        quadrantElem.classList.remove('bounce');
+                    }, { once: true });
+                }
+            });
+
+            // Touch drop support
+            quadrantElem.addEventListener('touchend', e => {
+                const touchElement = document.querySelector('.touch-active');
+                if (touchElement && quadrantElem.contains(e.target)) {
+                    const text = touchElement.getAttribute('data-touch-text');
+                    const from = touchElement.getAttribute('data-touch-from');
+                    const fromList = document.getElementById(from + '-list');
+                    const taskItem = Array.from(fromList.children).find(li => li.querySelector('span').textContent === text);
+                    if (taskItem) {
+                        taskItem.remove();
+                        addTaskToList(q, text);
+                        saveTasks();
+                        quadrantElem.classList.add('bounce');
+                        quadrantElem.addEventListener('animationend', () => {
+                            quadrantElem.classList.remove('bounce');
+                        }, { once: true });
+                    }
+                    touchElement.classList.remove('touch-active');
+                }
+            });
+        });
+
+        // Load tasks on start
+        loadTasks();
+
+        // Allow adding with Enter key
+        document.querySelectorAll('.add-task input').forEach(input => {
+            input.addEventListener('keypress', e => {
+                if (e.key === 'Enter') {
+                    const quadrant = input.id.split('-')[0];
+                    addTask(quadrant);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
